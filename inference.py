@@ -75,7 +75,12 @@ class DiscreteDistribution(dict):
         {}
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        total = self.total()
+        if(total == 0):
+            return 0 
+        for key in self.keys():
+            self[key] = self[key]/total
+
 
     def sample(self):
         """
@@ -99,6 +104,29 @@ class DiscreteDistribution(dict):
         0.0
         """
         "*** YOUR CODE HERE ***"
+        #check if data is normailized
+        if self.total() != 1:
+            self.normalize()
+
+        #sort the distriduted items
+        items = sorted(self.items())
+        # get the distribution and value of the items
+        dist   = [item[1] for item in items]
+        values = [item[1]for item in items]
+
+        #create a random choice
+        choice = random.random()
+        #  
+        i, total = 0, dist[0]
+        while choice > total:
+            i+=1
+            total += dist[i]
+        
+        return values[i]
+        
+
+
+
         raiseNotDefined()
 
 
@@ -169,6 +197,25 @@ class InferenceModule:
         Return the probability P(noisyDistance | pacmanPosition, ghostPosition).
         """
         "*** YOUR CODE HERE ***"
+        #check if the ghost is in jail
+        if ghostPosition == jailPosition:
+            #check if there are any noise between pacman and the ghost
+            if noisyDistance == None:
+                return 1.0
+            else:
+                return 0.0
+
+        #check if there is no noise
+        if noisyDistance == None:
+            return 0.0
+
+        #get the manhattan distance of pacman and the ghost then calculate probibility
+        distance = manhattanDistance(pacmanPosition, ghostPosition)
+        return busters.getObservationProbability(noisyDistance, distance)    
+        
+
+
+
         raiseNotDefined()
 
     def setGhostPosition(self, gameState, ghostPosition, index):
@@ -277,9 +324,24 @@ class ExactInference(InferenceModule):
         position is known.
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
 
-        self.beliefs.normalize()
+        #initialize the discrete distribution
+        distribution = DiscreteDistribution()
+
+        #get pacman and jail position
+        pacman_position = gameState.getPacmanPosition()
+        jail_position = self.getJailPosition()
+
+        #fill the distribution with new beliefs given the new observation
+        # iterated through all possible positions
+        for position in self.allPositions:
+            probability = self.getObservationProb(observation, pacman_position, position, jail_position)
+            distribution[position] = self.beliefs[position]*probability
+        
+        #normailize the new distribution
+        distribution.normalize()
+        #set the beliefs to the normalized distribution
+        self.beliefs = distribution
 
     def elapseTime(self, gameState):
         """
